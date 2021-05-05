@@ -28,6 +28,11 @@ jobs:
       - run: echo "APP_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
 
       # step 2: generate build files
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+      - name: build frontend
+        run: cd ./view && npm install && npm run build
       - name: Generate build files
         uses: crazy-max/ghaction-xgo@v1
         with:
