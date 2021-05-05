@@ -25,7 +25,7 @@ var (
 	/*********Will auto update by ci build *********/
 
 	//go:embed view/dist/*
-	f embed.FS
+	f embed.FS //nolint
 )
 
 func main() {

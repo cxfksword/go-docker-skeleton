@@ -7,7 +7,7 @@ Skeleton for run go service in docker
 * Go 1.6+
 * Node.js 12+
 
-## Getting Started
+## How to use
 
 1. copy all file to project directory
 2. replace all `github.com/cxfksword/go-docker-skeleton` string to your repo
