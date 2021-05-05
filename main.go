@@ -24,7 +24,7 @@ var (
 	Mode      = mode.Dev
 	/*********Will auto update by ci build *********/
 
-	//go:embed static/* view/*
+	//go:embed view/dist/*
 	f embed.FS
 )
 
