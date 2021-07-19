@@ -62,18 +62,59 @@ jobs:
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+
+      # push to DockerHub
+      - name: Initialize workflow variables
+        id: vars
+        shell: bash
+        run: |
+          # check for DOCKER_TOKEN availability (work-around for inaccessible 'secrets' object for 'if'; see <https://github.community/t5/GitHub-Actions/jobs-lt-job-id-gt-if-does-not-work-with-env-secrets/m-p/38549>)
+          unset HAS_DOCKER_TOKEN
+          if [ -n $DOCKER_TOKEN ]; then HAS_DOCKER_TOKEN='true' ; fi
+          echo set-output name=HAS_DOCKER_TOKEN::${HAS_DOCKER_TOKEN}
+          echo ::set-output name=HAS_DOCKER_TOKEN::${HAS_DOCKER_TOKEN}
+        env:
+          DOCKER_TOKEN: "${{ secrets.DOCKER_TOKEN }}"
       - name: Login to DockerHub
+        if: steps.vars.outputs.HAS_DOCKER_TOKEN
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
       - name: Build and push Docker images
+        if: steps.vars.outputs.HAS_DOCKER_TOKEN
         uses: docker/build-push-action@v2
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPOSITORY }}:latest
+          build-args: |
+            APP_NAME=${{env.APP_NAME}}
+            VERSION=${{env.VERSION}}
+            BUILDDATE=${{env.BUILDDATE}}
+            COMMIT=${{env.COMMIT}}
+
+      # push to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             APP_NAME=${{env.APP_NAME}}
             VERSION=${{env.VERSION}}
