@@ -22,15 +22,20 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v2
 
-      - run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
-      - run: echo "BUILDDATE=$(date '+%F-%T')" >> $GITHUB_ENV
-      - run: echo "COMMIT=$(git rev-parse --verify HEAD)" >> $GITHUB_ENV
-      - run: echo "APP_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
-      - run: if [ ! -z $DOCKER_TOKEN ]; then echo "HAS_DOCKER_TOKEN=true" >> $GITHUB_ENV; fi
+      # step 2: set workflow variables
+      - name: Initialize workflow variables
+        id: vars
+        run: |
+          echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+          echo ::set-output name=BUILDDATE::$(date '+%F-%T')
+          echo ::set-output name=COMMIT::$(git rev-parse --verify HEAD)
+          echo ::set-output name=APP_NAME::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')
+
+          if [ ! -z $DOCKER_TOKEN ]; then echo ::set-output name=HAS_DOCKER_TOKEN::${HAS_DOCKER_TOKEN}; fi
         env:
           DOCKER_TOKEN: "${{ secrets.DOCKER_TOKEN }}"
 
-      # step 2: generate build files
+      # step 3: generate build files
       - uses: actions/setup-node@v2
         with:
           node-version: "14"
@@ -42,17 +47,17 @@ jobs:
           xgo_version: latest
           go_version: ${{ matrix.go_version }}
           dest: build
-          prefix: ${{env.APP_NAME}}
+          prefix: ${{steps.vars.outputs.APP_NAME}}
           targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/386,darwin/amd64,linux/386,linux/arm64
           v: true
           x: false
-          ldflags: -w -s -X main.Version=${{env.VERSION}} -X main.BuildDate=${{env.BUILDDATE}} -X main.Commit=${{env.COMMIT}} -X main.Mode=prod
+          ldflags: -w -s -X main.Version=${{steps.vars.outputs.VERSION}} -X main.BuildDate=${{steps.vars.outputs.BUILDDATE}} -X main.Commit=${{steps.vars.outputs.COMMIT}} -X main.Mode=prod
 
-      # step 3: compress build files
+      # step 4: compress build files
       - name: Compress build files
         run: cd ./build && for i in *; do tar -czf $i.tar.gz $i; done && cd ..
 
-      # step 4: upload build-artifacts
+      # step 5: upload build-artifacts
       - name: Upload build-artifacts
         uses: skx/github-action-publish-binaries@master
         env:
@@ -60,21 +65,21 @@ jobs:
         with:
           args: "./build/*.tar.gz"
 
-      # step 5: build docker image & upload
+      # step 6: build docker image & upload
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      # push to DockerHub
+      # step 6.1: push to DockerHub
       - name: Login to DockerHub
-        if: ${{ env.HAS_DOCKER_TOKEN == 'true' }}
+        if: ${{ steps.vars.outputs.HAS_DOCKER_TOKEN == 'true' }}
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
       - name: Build and push Docker images
-        if: ${{ env.HAS_DOCKER_TOKEN == 'true' }}
+        if: ${{ steps.vars.outputs.HAS_DOCKER_TOKEN == 'true' }}
         uses: docker/build-push-action@v2
         with:
           context: .
@@ -82,12 +87,12 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPOSITORY }}:latest
           build-args: |
-            APP_NAME=${{env.APP_NAME}}
-            VERSION=${{env.VERSION}}
-            BUILDDATE=${{env.BUILDDATE}}
-            COMMIT=${{env.COMMIT}}
+            APP_NAME=${{steps.vars.outputs.APP_NAME}}
+            VERSION=${{steps.vars.outputs.VERSION}}
+            BUILDDATE=${{steps.vars.outputs.BUILDDATE}}
+            COMMIT=${{steps.vars.outputs.COMMIT}}
 
-      # push to GitHub Container Registry
+      # step 6.2: push to GitHub Container Registry
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
@@ -108,7 +113,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            APP_NAME=${{env.APP_NAME}}
-            VERSION=${{env.VERSION}}
-            BUILDDATE=${{env.BUILDDATE}}
-            COMMIT=${{env.COMMIT}}
+            APP_NAME=${{steps.vars.outputs.APP_NAME}}
+            VERSION=${{steps.vars.outputs.VERSION}}
+            BUILDDATE=${{steps.vars.outputs.BUILDDATE}}
+            COMMIT=${{steps.vars.outputs.COMMIT}}

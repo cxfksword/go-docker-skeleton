@@ -26,8 +26,8 @@ air -c .air.toml
 ## How to push DockerHub
 
 1. register dockerhub and create a repo
-2. on Dockerhub,goto `Account Settings -> Security` create aceess token
-3. on Github,goto repo `Settings -> Secrets` add three github action variable
+2. on Dockerhub, goto `Account Settings -> Security` create aceess token
+3. on Github, goto repo `Settings -> Secrets` and add three github action variables
 ```
 DOCKER_USERNAME
 DOCKER_TOKEN
