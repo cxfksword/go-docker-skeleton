@@ -2,11 +2,16 @@ package app
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"path"
 
 	"github.com/cxfksword/go-docker-skeleton/pkg/conf"
+	"github.com/cxfksword/go-docker-skeleton/pkg/log"
 	l "github.com/cxfksword/go-docker-skeleton/pkg/log"
 	"github.com/cxfksword/go-docker-skeleton/pkg/mode"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
@@ -50,6 +55,13 @@ func (a *application) Run(r *gin.Engine) {
 		l.SetTraceLevel()
 	}
 
+	// set gin access log
+	accessWriter := createAccessRollingLogFile(conf.App.Server.AccessLog)
+	if accessWriter != nil {
+		gin.DefaultWriter = io.MultiWriter(accessWriter, os.Stderr)
+		log.Infof("Gin access log file path: %s", conf.App.Server.AccessLog)
+	}
+
 	// log.Info().Msgf("Config file path: %s", a.ConfigFilePath)
 	// log.Info().Msgf("Log file path: %s", a.Config.Log)
 	// log.Info().Msgf("Gin access log file path: %s", a.Config.AccessLog)
@@ -58,7 +70,10 @@ func (a *application) Run(r *gin.Engine) {
 	if a.Port <= 0 {
 		a.Port = conf.App.Server.Port
 	}
-	r.Run(fmt.Sprintf("%s:%d", conf.App.Server.ListenAddr, a.Port))
+	err := r.Run(fmt.Sprintf("%s:%d", conf.App.Server.ListenAddr, a.Port))
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 func (a *application) ReloadConfig() {
@@ -67,4 +82,19 @@ func (a *application) ReloadConfig() {
 
 func DevMode() bool {
 	return currentApp.Mode == mode.Dev
+}
+
+func createAccessRollingLogFile(logPath string) io.Writer {
+	logDir := path.Dir(logPath)
+	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
+		log.Errorf("Can't create log directory. path: %s, err: %s", logPath, err)
+		return nil
+	}
+
+	return &lumberjack.Logger{
+		Filename:   logPath,
+		MaxSize:    500, // megabytes
+		MaxBackups: 31,
+		MaxAge:     7, //daysdays
+	}
 }

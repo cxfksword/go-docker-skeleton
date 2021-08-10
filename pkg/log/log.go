@@ -45,11 +45,11 @@ func SetTraceLevel() {
 }
 
 func Print(v ...interface{}) {
-	log.Print(v)
+	log.Print(v...)
 }
 
 func Printf(format string, v ...interface{}) {
-	log.Printf(format, v)
+	log.Printf(format, v...)
 }
 
 func Info(msg string) {
@@ -57,7 +57,7 @@ func Info(msg string) {
 }
 
 func Infof(format string, v ...interface{}) {
-	log.Info().Msgf(format, v)
+	log.Info().Msgf(format, v...)
 }
 
 func Warn(msg string) {
@@ -65,7 +65,7 @@ func Warn(msg string) {
 }
 
 func Warnf(format string, v ...interface{}) {
-	log.Warn().Msgf(format, v)
+	log.Warn().Msgf(format, v...)
 }
 
 func Error(msg string) {
@@ -73,7 +73,7 @@ func Error(msg string) {
 }
 
 func Errorf(format string, v ...interface{}) {
-	log.Error().Msgf(format, v)
+	log.Error().Msgf(format, v...)
 }
 
 func createRollingLogFile(logPath string) io.Writer {
@@ -87,20 +87,6 @@ func createRollingLogFile(logPath string) io.Writer {
 		Filename:   logPath,
 		MaxSize:    100, // megabytes
 		MaxBackups: 3,
-		MaxAge:     7, //daysdays
-	}
-}
-
-func createAccessRollingLogFile(logPath string) io.Writer {
-	logDir := path.Dir(logPath)
-	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
-		golog.Panicf("Can't create log directory. path: %s, err: %s", logPath, err)
-	}
-
-	return &lumberjack.Logger{
-		Filename:   logPath,
-		MaxSize:    500, // megabytes
-		MaxBackups: 31,
 		MaxAge:     7, //daysdays
 	}
 }
