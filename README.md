@@ -22,6 +22,16 @@ go get -u https://github.com/cosmtrek/air
 air -c .air.toml
 ```
 
+## How to integrated with **vue-admin-template**
+
+```
+rm -rf view
+git clone --depth=1 https://github.com/PanJiaChen/vue-admin-template.git view
+cd view
+rm -rf ./.git
+npm install
+```
+
 
 ## How to push DockerHub
 

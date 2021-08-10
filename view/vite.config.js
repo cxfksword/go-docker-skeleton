@@ -3,7 +3,6 @@ import vue from "@vitejs/plugin-vue";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base:"/public/",
   plugins: [vue()],
   build: {
     // outDir: "dist",
@@ -13,8 +12,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: () => "everything.js",
-        assetFileNames: "bundle.css",
-        entryFileNames: "bundle.js",
+        assetFileNames: "static/bundle.css",
+        entryFileNames: "static/bundle.js",
       },
     },
   },

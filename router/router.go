@@ -12,19 +12,11 @@ func Create(f *embed.FS) *gin.Engine {
 	r := gin.Default()
 
 	// 配置路由
-	r.GET("/", func(c *gin.Context) {
-		file, _ := f.ReadFile("view/dist/index.html")
-		c.Data(
-			http.StatusOK,
-			"text/html; charset=utf-8",
-			file,
-		)
-	})
-
-	r.GET("/public/:name", func(c *gin.Context) {
-		name := c.Param("name")
-		fmt.Println(name)
-		c.FileFromFS(fmt.Sprintf("view/dist/%s", name), http.FS(f))
+	r.StaticFile("/", "view/dist/index.html")
+	r.StaticFile("/favicon.ico", "view/dist/favicon.ico")
+	r.GET("/static/*file", func(c *gin.Context) {
+		file := c.Param("file")
+		c.FileFromFS(fmt.Sprintf("view/dist/static/%s", file), http.FS(f))
 	})
 
 	return r
