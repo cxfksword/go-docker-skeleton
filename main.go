@@ -2,11 +2,12 @@ package main
 
 import (
 	"embed"
-	"log"
+	"fmt"
+	"os"
 
-	"github.com/cxfksword/go-docker-skeleton/app"
-	"github.com/cxfksword/go-docker-skeleton/mode"
-	"github.com/cxfksword/go-docker-skeleton/model"
+	"github.com/cxfksword/go-docker-skeleton/pkg/app"
+	"github.com/cxfksword/go-docker-skeleton/pkg/log"
+	"github.com/cxfksword/go-docker-skeleton/pkg/mode"
 	"github.com/cxfksword/go-docker-skeleton/router"
 	"github.com/urfave/cli/v2"
 )
@@ -29,26 +30,14 @@ var (
 )
 
 func main() {
-	version := model.VersionInfo{Version: Version, BuildDate: BuildDate, Commit: Commit}
-	app := app.New(Mode, version)
+	log.Init()
+	version := app.VersionInfo{Version: Version, BuildDate: BuildDate, Commit: Commit}
+	app := app.New(AppName, AppDesc, Mode, version)
 
 	cmd := &cli.App{
 		Name:  AppName,
 		Usage: AppDesc,
 		Flags: []cli.Flag{
-			&cli.IntFlag{
-				Name:        "port",
-				Value:       9000,
-				Aliases:     []string{"p"},
-				Usage:       "web server port",
-				Destination: &app.Port,
-			},
-			&cli.StringFlag{
-				Name:        "config",
-				Aliases:     []string{"c"},
-				Usage:       "Load configuration from `FILE`",
-				Destination: &app.ConfigFilePath,
-			},
 			&cli.BoolFlag{
 				Name:        "debug",
 				Aliases:     []string{"vv"},
@@ -64,9 +53,36 @@ func main() {
 				Destination: &app.VerboseLogLevel,
 			},
 		},
+		Commands: []*cli.Command{
+			{
+				Name:  "run",
+				Usage: "Run web admin",
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:        "port",
+						Aliases:     []string{"p"},
+						Usage:       "web server port",
+						Destination: &app.Port,
+					},
+					&cli.StringFlag{
+						Name:        "config",
+						Aliases:     []string{"c"},
+						Usage:       "Load configuration from `FILE`",
+						Destination: &app.ConfigFilePath,
+					},
+				},
+				Action: func(c *cli.Context) error {
+					router := router.Create(&f)
+					app.Run(router)
+					return nil
+				},
+			},
+		},
 	}
 
-	log.Printf("Starting %s version: %s\n", AppName, Version+"@"+BuildDate+"@"+Mode)
-	router := router.Create(&f)
-	app.Run(cmd, router)
+	fmt.Printf("Starting %s version: %s\n", AppName, Version+"@"+BuildDate+"@"+Mode)
+	err := cmd.Run(os.Args)
+	if err != nil {
+		panic(err)
+	}
 }
